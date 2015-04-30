@@ -1,16 +1,17 @@
-// jianbuquan project main.go
-package main
+// webhandler project webhandler.go
+package webhandler
 
 import (
+	"dataobj"
 	"html/template"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"path"
 	"runtime/debug"
 	"strings"
+	"weblog"
 )
 
 const (
@@ -33,7 +34,7 @@ func ttinit() {
 			continue
 		}
 		templatePath = PAGE_DIR + "/" + templateName
-		log.Println("Loading template:", templatePath)
+		weblog.DebugLog("Loading template:", templatePath)
 		t := template.Must(template.ParseFiles(templatePath))
 		tmpl := strings.Replace(path.Base(templateName), ".html", "", -1)
 		templates[tmpl] = t
@@ -75,7 +76,16 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func regHandler(w http.ResponseWriter, r *http.Request) {
-	renderHtml(w, "regpage", nil)
+	if r.Method == "GET" {
+		renderHtml(w, "regpage", nil)
+	} else if r.Method == "POST" {
+		user := new(dataobj.User)
+		user.Appid = r.FormValue("appid")
+		user.Id = r.FormValue("id")
+		user.Name = r.FormValue("name")
+		user.Save()
+	}
+
 }
 func dailyHandler(w http.ResponseWriter, r *http.Request) {
 	renderHtml(w, "dailyreport", nil)
@@ -95,8 +105,8 @@ func safeHandler(fn http.HandlerFunc) http.HandlerFunc {
 				// w.WriteHeader(http.StatusInternalServerError)
 				// renderHtml(w, "error", e)
 				// logging
-				log.Println("WARN: panic in %v. - %v", fn, e)
-				log.Println(string(debug.Stack()))
+				weblog.ErrorLog("WARN: panic in %v. - %v", fn, e)
+				weblog.ErrorLog(string(debug.Stack()))
 			}
 		}()
 		fn(w, r)
@@ -114,16 +124,12 @@ func staticDirHandler(mux *http.ServeMux, prefix string, staticDir string, flags
 		http.ServeFile(w, r, file)
 	})
 }
-func main() {
-	mux := http.NewServeMux()
+
+func RegisterHandler(mux *http.ServeMux) {
 	staticDirHandler(mux, "/assets/", "./public", 0)
 	mux.HandleFunc("/", safeHandler(rootHandler))
 	mux.HandleFunc("/register", safeHandler(regHandler))
 	mux.HandleFunc("/dailyreport", safeHandler(dailyHandler))
 	mux.HandleFunc("/ranking", safeHandler(rankingHandler))
 	mux.HandleFunc("/mainpage", safeHandler(mainHandler))
-	err := http.ListenAndServe(":8080", mux)
-	if err != nil {
-		log.Fatal("ListenAndServe: ", err.Error())
-	}
 }
