@@ -1,0 +1,213 @@
+﻿
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta http-equiv="Cache-Control" content="max-age=0" />
+<title>健步圈-个人详细记录</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="keywords" content="PAAS 健步圈" />
+<meta name="description" content="健步圈个人详细记录" />
+<link rel="stylesheet" type="text/css" href="assets/style/reset.css?v=1" /> 
+<link rel="stylesheet" type="text/css" href="assets/style/root.css?v=3" /> 
+<script type="text/javascript" src="assets/js/jquery.min.js?v=1"></script>
+<script type="text/javascript" src="assets/js/toogle.js?v=1"></script>    
+</head>
+<body>
+    <!-- start header -->
+    	<div id="header">
+         <img src="assets/img/logo.png"  alt="logo" class="logo" />
+         	<a href="index.html" class="button back"><img src="assets/img/back-button.png" width="15" height="16" alt="icon" /></a>
+         	<a href="#" class="button search"><img src="assets/img/search.png" width="16" height="16" alt="icon"/></a>
+         	<a href="form.html" class="button create"><img src="assets/img/create.png" width="16" height="16" alt="icon"/></a>
+        <div class="clear"></div>
+        </div>
+    <!-- end header -->
+    
+    <!-- start searchbox -->
+    <div class="searchbox">
+   	  <form id="form1" name="form1" method="post" action="">
+      	<input type="text" name="textfield" id="textfield" class="txtbox" />
+   	  </form>
+    </div>
+    <!-- end searchbox -->
+    <input type="hidden" id="datestr" value="{{range $k, $v := $.user.SelfDailys}}{{if gt $k 0}},{{end}}{{$v.GetDateStr}}{{end}}" />
+    <input type="hidden" id="steps" value="{{range $k, $v := $.user.SelfDailys}}{{if gt $k 0}},{{end}}{{$v.StepNum}}{{end}}" />
+    <input type="hidden" id="distances" value="{{range $k, $v := $.user.SelfDailys}}{{if gt $k 0}},{{end}}{{$v.Distance}}{{end}}" />
+    <input type="hidden" id="username" value="{{.user.Name}}" />
+    <!-- start page -->
+    <div class="page">
+    
+    		
+            <div class="simplebox">
+             <!-- 为ECharts准备一个具备大小（宽高）的Dom -->
+            <div id="stepchart" style="height:200px;width:100%"></div>
+                <div id="distancechart" style="height:200px;width:100%"></div>
+                    <ul class="detail-menu">                        <li><a><b><span class="headerbolder">日期</span><span  class="headerbolder">步数</span><span  class="headerbolder">公里数</span></b></a></li>                       {{range $k, $v := $.user.SelfDailys}} <li><a href="{{$v.Img}}"><b><span>{{$v.GetDateStr}}</span><span>{{$v.StepNum}}</span><span>{{$v.Distance}}</span> </b></a></li>{{end}}
+                    </ul>
+      </div>
+                    <div class="form-line">
+                   <center>{{if ge .before 0}}<a href="/detail?id={{.user.Id}}&weeknum={{.before}}"><input type="submit" name="button" id="button" value="&nbsp;上一周&nbsp;" class="list-button" /></a>{{end}}
+                   {{if ge .after 0}} <a href="/detail?id={{.user.Id}}&weeknum={{.after}}"><input type="submit" name="button" id="button2" value="&nbsp;下一周&nbsp;" class="list-button" /></a>{{end}}</center> 
+                    </div>
+            <!-- start top button -->
+            <div class="topbutton"><a href="#header"><span>Top</span></a></div>
+            <!-- end top button -->
+            
+            
+            
+             <!-- start footer -->
+            <div class="footer">
+            <center>© 2014 - 2015  健步圈--IT PAAS产品部<p>平台DU I&V自动化能力中心技术支持</p></center>
+            </div>
+            <!-- end footer -->
+            
+            
+    
+    <div class="clear"></div>
+    </div>
+    <!-- end page -->
+	
+    
+     <!-- ECharts单文件引入 -->
+    <script type="text/javascript" src="http://echarts.baidu.com/build/dist/echarts.js?v=1"></script>
+    <script type="text/javascript">
+        // 路径配置
+        require.config({
+            paths: {
+                echarts: 'http://echarts.baidu.com/build/dist'
+            }
+        });
+
+        // 使用
+        require(
+            [
+                'echarts',
+                'echarts/chart/line' // 使用柱状图就加载bar模块，按需加载
+            ],
+            function (ec) {
+                // 基于准备好的dom，初始化echarts图表
+                var myChart = ec.init(document.getElementById('stepchart'));
+                var steps = document.getElementById('steps').value.split(",");
+                var distance = document.getElementById('distances').value.split(",");
+                var datestr = document.getElementById('datestr').value.split(",");
+
+                option = {
+                    title: {
+                        text: '张三全周记录',
+                        subtext: '点击每天的数据，可以查看当天提交的图片信息',
+                        x: 'center'
+                    },
+                    tooltip: {
+                        trigger: 'axis'
+                    },
+                    legend: {
+                        data: ['步行数'],
+                        x: 'left'
+                    },
+                    xAxis: [
+                        {
+                            type: 'category',
+                            boundaryGap: false,
+                            date: []
+                        }
+                    ],
+                    yAxis: [
+                        {
+                            type: 'value',
+                            axisLabel: {
+                                formatter: '{value} 步'
+                            }
+                        }
+                    ],
+                    series: [
+                        {
+                            name: '步行数',
+                            type: 'line',
+                            data: [10000, 9000, 10002, 900, 1200, 13000, 1000],
+                            markPoint: {
+                                data: [
+                                    { type: 'max', name: '最大值' },
+                                    { type: 'min', name: '最小值' }
+                                ]
+                            },
+                            markLine: {
+                                data: [
+                                    { type: 'average', name: '平均值' }
+                                ]
+                            }
+                        }
+                    ]
+                };
+                option.xAxis[0].data = datestr;
+                option.series.data = steps;
+                option.title.text = document.getElementById("username").value + "详细记录数据";
+                // 为echarts对象加载数据 
+                myChart.setOption(option);
+
+                // 基于准备好的dom，初始化echarts图表
+                var myChart = ec.init(document.getElementById('distancechart'));
+
+                option = {
+                    tooltip: {
+                        trigger: 'axis'
+                    },
+                    legend: {
+                        data: ['公里数'],
+                        x: 'left'
+                    },
+                    xAxis: [
+                        {
+                            type: 'category',
+                            boundaryGap: false,
+                            data: [],
+                            axisLine: [{ lineStyle: { color: 'green' } }]
+                        }
+                    ],
+                    yAxis: [
+                        {
+                            type: 'value',
+                            axisLabel: {
+                                formatter: '{value} 公里'
+                            }
+                        }
+                    ],
+                    grid: [
+                        {
+                            x: '4%',
+                            width: '100%'
+                        }
+                    ],
+                    series: [
+                        {
+                            name: '公里数',
+                            type: 'line',
+                            data: [10, 2, 2, 5, 13, 2, 10],
+                            markPoint: {
+                                data: [
+                                    { type: 'max', name: '最大值' },
+                                    { type: 'min', name: '最小值' }
+                                ]
+                            },
+                            markLine: {
+                                data: [
+                                    { type: 'average', name: '平均值' }
+                                ]
+                            }
+                        }
+                    ]
+
+                };
+                option.xAxis[0].data = datestr;
+                option.series[0].data = distance;
+                // 为echarts对象加载数据 
+                myChart.setOption(option);
+            }
+        );
+    </script>
+    
+    
+</body>
+  
+</html>
+<script type="text/javascript" src="assets/js/frame.js"></script>

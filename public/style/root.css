@@ -294,6 +294,19 @@ input, select, textarea{
 	border:1px solid #88AAC6;}
 .reset-button:active{
 	box-shadow: inset 0 0 0.5em #A3BDD3;}
+.list-button{
+	font:14px Arial, Helvetica, sans-serif;
+	color:#FFFFFF;
+	border:1px solid #17486C;
+	font-weight:bold;
+	text-shadow: 0px -1px #1C5580;
+	padding:8px;
+	border-radius:3px;
+	background:#246597 url(../img/blue-button.png) repeat-x top;}
+.list-button:hover{
+	border:1px solid #113753;}
+.list-button:active{
+	box-shadow: inset 0 0 0.5em #17486C;}
 
 /*==============================================================================*/
 /*	8.	STATISTICS
@@ -335,8 +348,10 @@ input, select, textarea{
 	font-size:12px;}
 .list-menu li{
 	display:block;
+    background:url(../img/arrow-ts.png) no-repeat right;
 	border:1px solid #C1D6E6;
 	border-top:none;
+    vertical-align:central;
 	background:#fff;}
 .list-menu li a{
 	display:block;
@@ -344,12 +359,13 @@ input, select, textarea{
 	padding:14px;
 	color:#154364;
 	font-weight:bold;
+    vertical-align:central;
 	padding-left:15px;
 	padding-right:15px;}
 .list-menu li a b{
-	background:url(../img/arrow-ts.png) no-repeat right;
-	padding-right:19px;
+	vertical-align:central;
 	display:block;
+    text-align:center;
 	font:bold 12px Arial, Helvetica, sans-serif;
 	line-height:23px;}
 .list-menu li a:hover{
@@ -359,17 +375,52 @@ input, select, textarea{
 	background:url(../img/arrow-ts-hover.png) no-repeat right;
 	color:#fff;}
 .list-menu li a span{
+    vertical-align:central;
 	font-weight:bold;
-	color:#fff;
-	background:#3277AB;
-	padding:3px 5px;
-	border-radius:2px;
-	margin-left:10px;}
+    display:inline-block;
+    text-align:center
+}
 .list-menu li a:hover span{
 	background:#EAF0F6;
 	color:#3277AB;}
 .list-menu a .red{
-	background:#E76463;}
+	color:#E76463;
+    font-size:18px;
+    width:12%;
+}
+.list-menu a .redend{
+	color:#E76463;
+    font-size:18px;
+    width:20%;
+}
+.list-menu a .blue{
+	color:#3277AB;
+     width:12%;
+}
+.list-menu a .blueend{
+	color:#3277AB;
+    
+     width:20%;
+}
+
+.list-menu a .text{
+	width:55%;
+}
+
+.list-menu a .headerbolder{
+    font-size:18px;
+	width:12%;
+}
+.list-menu a .headerbolderend{
+    font-size:18px;
+	width:20%;
+}
+
+.list-menu a .headercenter{
+    font-size:18px;
+	width:55%;
+}
+
 
 /*==============================================================================*/
 /*	11.	ERROR PAGE
@@ -474,3 +525,55 @@ input, select, textarea{
 	top:10px;
 	right:14px;}
 
+
+/*==============================================================================*/
+/*	10.	DETAIL MENU
+/*==============================================================================*/
+.detail-menu{
+	border-top:1px solid #C1D6E6;
+	padding-bottom:14px;
+	font-size:12px;}
+.detail-menu li{
+	display:block;
+    background:url(../img/arrow-ts.png) no-repeat right;
+	border:1px solid #C1D6E6;
+	border-top:none;
+    vertical-align:central;
+	background:#fff;}
+.detail-menu li a{
+	display:block;
+	position:relative;
+	padding:14px;
+	color:#154364;
+	font-weight:bold;
+    vertical-align:central;
+	padding-left:15px;
+	padding-right:15px;}
+.detail-menu li a b{
+	vertical-align:central;
+	display:block;
+    text-align:center;
+	font:bold 12px Arial, Helvetica, sans-serif;
+	line-height:23px;}
+.detail-menu li a:hover{
+	background:#4088C0 url(../img/menu-hover.png) repeat-x bottom;
+	color:#4088C0;}
+.detail-menu li a:hover b{
+	background:url(../img/arrow-ts-hover.png) no-repeat right;
+	color:#fff;}
+.detail-menu li a span{
+    vertical-align:central;
+	font-weight:bold;
+    display:inline-block;
+    text-align:center;
+        width:30%;
+}
+.detail-menu li a:hover span{
+	background:#EAF0F6;
+	color:#3277AB;
+}
+
+.detail-menu a .headerbolder{
+    font-size:18px;
+	width:30%;
+}

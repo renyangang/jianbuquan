@@ -38,27 +38,27 @@
     
     		
             <div class="simplebox">
-            	<h1 class="titleh">今日信息提交</h1>
+            	<h1 class="titleh">你好，{{.user.Name|html}}</h1>
                 <div class="content">
                 	<div class="albox informationbox">
                                 	<b>信息 :</b> 当日内如果多次提交步行结果，每次提交都会覆盖上次结果，以最后一次提交为准. 
                                 	<a href="#" class="close tips" title="close">close</a>
                                 </div>
                   <form id="form12" name="form1" method="post" action="">
-                  		
+                  		<input type="hidden" id="id" name="id" value="{{.user.Id|html}}" />
                     <div class="form-line">
                    	  <label class="st-label">今日步数</label>
-                      <input type="number" name="textfield" id="stepnum"  style=" width:80%;" />
+                      <input type="number" name="steps" id="steps"  style=" width:80%;" />
                     </div>
                   		
                     <div class="form-line">
                    	  <label class="st-label">今日公里数</label>
-                      <input type="number" name="textfield" id="distance"  style=" width:80%;" />
+                      <input type="number" name="distance" id="distance"  style=" width:80%;" />
                     </div>
 
                      <div class="form-line">
                    	  <label class="st-label">步数截图</label>
-                      <input type="file" name="textfield" id="Number1"  style=" width:80%;" />
+                      <input type="file" accept="image/*" name="img" id="img"  style=" width:80%;" />
                     </div>
                   		
                     

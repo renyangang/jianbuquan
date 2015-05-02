@@ -163,6 +163,10 @@ func (dr *DailyRecord) Save() (ret bool) {
 	return true
 }
 
+func (dr *DailyRecord) GetDateStr() string {
+	return dr.Day.Format("2006-01-02")
+}
+
 type User struct {
 	Appid         string
 	Id            string
@@ -177,22 +181,45 @@ type User struct {
 	SelfDaily     *DailyRecord
 }
 
-func (user *User) GetDailyRecords(day int) bool {
-	user.SelfDailys = make([]*DailyRecord, day)
-	if !user.GetDailyRecord(time.Now()) {
-		return false
+// 以当前时间为基数，weeknum获取一周的数据，0位本周，1为上周，依次类推
+func (user *User) GetDailyRecords(weeknum int) (ret bool, hasbefore bool) {
+	hasbefore = true
+	ret = false
+	day := time.Now()
+	// api一周从周日开始计，我们这里从周一开始
+	weekday := day.Weekday()
+	daynum := weekday
+	subdaynum := 0
+	// 计算出周日
+	if weeknum > 0 {
+		subdaynum = int(weekday) + (7 * (weeknum - 1))
+		day = day.AddDate(0, 0, subdaynum*-1)
+		daynum = 7
+	} else if daynum == 0 {
+		daynum = 7 //今天是周日
 	}
-
+	if !user.GetDailyRecord(day) {
+		return
+	}
+	user.SelfDailys = make([]*DailyRecord, daynum)
 	user.SelfDailys[0] = user.SelfDaily
-	if day > 1 {
+	if daynum > 1 {
 		dbconn := dbpool.Get()
-		bsarray, err := redis.Values(dbconn.Do("LRANGE", user.Id, 1, day-1))
+		recordlen, err1 := redis.Int(dbconn.Do("LLEN", user.Id))
+		if err1 != nil {
+			weblog.ErrorLog("get dailyrecord len failed in GetDailyRecordS.errinfo: %s", err1.Error())
+			return
+		}
+		if subdaynum+7 >= recordlen {
+			hasbefore = false
+		}
+		bsarray, err := redis.Values(dbconn.Do("LRANGE", user.Id, subdaynum+1, daynum-1))
 		if err != nil {
 			weblog.ErrorLog("get dailyrecords failed in GetDailyRecord.errinfo: %s", err.Error())
-			return false
+			return
 		}
 		if bsarray == nil || len(bsarray) == 0 {
-			return true
+			return true, hasbefore
 		}
 		for i, bs := range bsarray {
 			user.SelfDailys[i+1] = new(DailyRecord)
@@ -200,7 +227,7 @@ func (user *User) GetDailyRecords(day int) bool {
 			user.SelfDailys[i+1].UnSerialization(bs.([]byte))
 		}
 	}
-	return true
+	return true, hasbefore
 }
 
 func (user *User) GetDailyRecord(day time.Time) bool {
@@ -337,7 +364,7 @@ func GetUserByAppid(appid string) (user *User) {
 	var err error
 	user = new(User)
 	user.Appid = appid
-	user.Id, err = redis.String(dbconn.Do("GET", "appid", user.Appid))
+	user.Id, err = redis.String(dbconn.Do("HGET", "appid:id", user.Appid))
 	if err != nil {
 		weblog.ErrorLog("get userid failed with appid.errinfo: %s", err.Error())
 		return
@@ -384,6 +411,7 @@ func (user *User) Load() (ret bool) {
 		weblog.ErrorLog("get user monthdistance failed in user Load.errinfo: %s", err.Error())
 		return false
 	}
+	user.IsLoad = true
 	return true
 }
 
@@ -398,7 +426,7 @@ func (user *User) IsExist() bool {
 
 func (user *User) Save() (ret bool) {
 	dbconn := dbpool.Get()
-	_, err := redis.Bool(dbconn.Do("SET", "appid", user.Appid, user.Id))
+	_, err := redis.Bool(dbconn.Do("HSET", "appid:id", user.Appid, user.Id))
 	if err != nil {
 		weblog.ErrorLog("set appid failed in user save.errinfo: %s", err.Error())
 		return false
@@ -427,6 +455,84 @@ func (user *User) Save() (ret bool) {
 	if err != nil {
 		weblog.ErrorLog("set monthdistance failed in user save.errinfo: %s", err.Error())
 		return false
+	}
+	return true
+}
+
+func (user *User) UpdateItem(olduser *User) (ret bool) {
+	dbconn := dbpool.Get()
+	var err error
+	// 可以修改的只有id、name、img
+	if user.Id != olduser.Id {
+		_, err = redis.Bool(dbconn.Do("HSET", "appid:id", user.Appid, user.Id))
+		if err != nil {
+			weblog.ErrorLog("set appid:id failed in user update")
+			return false
+		}
+		_, err = redis.Bool(dbconn.Do("RENAME", "id:"+olduser.Id, "id:"+user.Id))
+		if err != nil {
+			weblog.ErrorLog("set user info id failed in user update")
+			return false
+		}
+		_, err = redis.Bool(dbconn.Do("RENAME", olduser.Id, user.Id))
+		if err != nil {
+			weblog.ErrorLog("set user daliyrecord id failed in user update")
+			return false
+		}
+		_, err = redis.Bool(dbconn.Do("ZREM", "weeksteps", olduser.Id))
+		if err != nil {
+			weblog.ErrorLog("remove weeksteps failed in user update")
+			return false
+		}
+		_, err = redis.Bool(dbconn.Do("ZREM", "monthsteps", olduser.Id))
+		if err != nil {
+			weblog.ErrorLog("remove monthsteps failed in user update")
+			return false
+		}
+		_, err = redis.Bool(dbconn.Do("ZREM", "weekdistance", olduser.Id))
+		if err != nil {
+			weblog.ErrorLog("remove weekdistance failed in user update")
+			return false
+		}
+		_, err = redis.Bool(dbconn.Do("ZREM", "monthdistance", olduser.Id))
+		if err != nil {
+			weblog.ErrorLog("remove monthdistance failed in user update")
+			return false
+		}
+		_, err = redis.Bool(dbconn.Do("ZADD", "weeksteps", olduser.WeekStepNum, user.Id))
+		if err != nil {
+			weblog.ErrorLog("set weeksteps failed in user update.errinfo: %s", err.Error())
+			return false
+		}
+		_, err = redis.Bool(dbconn.Do("ZADD", "monthsteps", olduser.MonthStepNum, user.Id))
+		if err != nil {
+			weblog.ErrorLog("set monthsteps failed in user update.errinfo: %s", err.Error())
+			return false
+		}
+		_, err = redis.Bool(dbconn.Do("ZADD", "weekdistance", olduser.WeekDistance, user.Id))
+		if err != nil {
+			weblog.ErrorLog("set weekdistance failed in user update.errinfo: %s", err.Error())
+			return false
+		}
+		_, err = redis.Bool(dbconn.Do("ZADD", "monthdistance", olduser.MonthDistance, user.Id))
+		if err != nil {
+			weblog.ErrorLog("set monthdistance failed in user update.errinfo: %s", err.Error())
+			return false
+		}
+	}
+	if user.Name != olduser.Name {
+		_, err = redis.Bool(dbconn.Do("HSET", "id:"+user.Id, "name", user.Name))
+		if err != nil {
+			weblog.ErrorLog("set name failed in user update")
+			return false
+		}
+	}
+	if user.Img != olduser.Img {
+		_, err = redis.Bool(dbconn.Do("HSET", "id:"+user.Id, "img", user.Img))
+		if err != nil {
+			weblog.ErrorLog("set img failed in user update")
+			return false
+		}
 	}
 	return true
 }

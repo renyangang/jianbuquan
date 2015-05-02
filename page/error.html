@@ -3,11 +3,10 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-
-<title>健步圈-注册</title>
+<title>健步圈</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <meta name="keywords" content="PAAS 健步圈" />
-<meta name="description" content="健步圈注册页面" />
+<meta name="description" content="错误页面" />
 <link rel="stylesheet" type="text/css" href="assets/style/reset.css" /> 
 <link rel="stylesheet" type="text/css" href="assets/style/root.css" /> 
 <script type="text/javascript" src="assets/js/jquery.min.js"></script>
@@ -16,10 +15,10 @@
 <body>
     <!-- start header -->
     	<div id="header">
-         <img src="assets/img/logo.png"  alt="logo" class="logo" />
-         	<a href="index.html" class="button back"><img src="assets/img/back-button.png" width="15" height="16" alt="icon" /></a>
-         	<a href="#" class="button search"><img src="assets/img/search.png" width="16" height="16" alt="icon"/></a>
-         	<a href="form.html" class="button create"><img src="assets/img/create.png" width="16" height="16" alt="icon"/></a>
+         <a href="#"><img src="img/logo.png" alt="logo" class="logo" /></a>
+         	<a href="javascript:history.back()" class="button back"><img src="img/back-button.png" width="15" height="16" alt="icon" /></a>
+         	<a href="#" class="button search"><img src="img/search.png" width="16" height="16" alt="icon"/></a>
+         	<a href="form.html" class="button create"><img src="img/create.png" width="16" height="16" alt="icon"/></a>
         <div class="clear"></div>
         </div>
     <!-- end header -->
@@ -36,34 +35,29 @@
     <!-- start page -->
     <div class="page">
     
-    		
+    
+            <!-- start error page -->
+                		
             <div class="simplebox">
-            	<h1 class="titleh">个人信息注册</h1>
-                <div class="content">
+            	<h1 class="titleh">错误页面</h1>
+                <div class="content">		
+             	
                 	
-                  <form id="form12" name="form1" method="post" action="">
-                  		<input type="hidden" name="appid" id="appid" value="abc123" />
-                    <div class="form-line">
-                   	  <label class="st-label">工号</label>
-                      <input type="number" name="id" id="id"  style=" width:80%;" />
+                    <div class="error-page">
+                    	<img src="img/error.png" width="62" height="62" alt="icon" />
+                        <h3>额... 出错了</h3>
+                        <p>{{.error|html}}</p>
+                        <div class="buttons"><a href="javascript:history.back()'" class="reset-button">&nbsp;返 回&nbsp;</a></div>
                     </div>
-                  		
-                    <div class="form-line">
-                   	  <label class="st-label">姓名</label>
-                      <input type="text" name="name" id="name"  style=" width:80%;" />
-                    </div>
-                  		
-                    
-                    
-                    <div class="form-line">
-                    <input type="submit" name="button" id="button" value="&nbsp;提 交&nbsp;" class="submit-button" />
-                    <input type="reset" name="button" id="button2" value="&nbsp;重 置&nbsp;" class="reset-button" />
-                    </div>
-
-                  </form>
-                  
+                
+                
                 </div>
-      </div>
+             </div>
+             
+            <!-- end error page -->
+
+                        
+                  
             
             
             
@@ -76,7 +70,7 @@
             
             
             
-            <!-- start footer -->
+           <!-- start footer -->
             <div class="footer">
             <center>© 2014 - 2015  健步圈--IT PAAS产品部<p>平台DU I&V自动化能力中心技术支持</p></center>
             </div>
@@ -94,4 +88,4 @@
     
 </body>
 </html>
-<script type="text/javascript" src="assets/js/frame.js"></script>
+<script type="text/javascript" src="js/frame.js"></script>
