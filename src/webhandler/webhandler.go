@@ -129,10 +129,10 @@ func dailyHandler(w http.ResponseWriter, r *http.Request) {
 		check(err)
 		defer f.Close()
 		filepath := UPLOAD_DIR + user.Id
-		err = os.MkdirAll(filepath, os.ModeDir)
+		err = os.MkdirAll(filepath, os.ModeDir|os.ModePerm)
 		check(err)
 		user.SelfDaily.Img = filepath + user.SelfDaily.GetDateStr() + path.Ext(h.Filename)
-		t, err := os.OpenFile(user.SelfDaily.Img, os.O_CREATE|os.O_RDWR|os.O_TRUNC, os.ModeType)
+		t, err := os.OpenFile(user.SelfDaily.Img, os.O_CREATE|os.O_RDWR|os.O_TRUNC, os.ModeType|os.ModePerm)
 		check(err)
 		defer t.Close()
 		_, err = io.Copy(t, f)
@@ -188,7 +188,7 @@ func safeHandler(fn http.HandlerFunc) http.HandlerFunc {
 				//http.Error(w, e.Error(), http.StatusInternalServerError)
 				// 或者输出自定义的50x错误页面
 				//w.WriteHeader(http.StatusInternalServerError)
-				w.Header().Add("Status-Code", http.StatusInternalServerError)
+				w.Header().Add("Status-Code", strconv.Itoa(http.StatusInternalServerError))
 				locals := make(map[string]interface{})
 				locals["error"] = e.Error()
 				renderHtml(w, "error", locals)
