@@ -187,7 +187,8 @@ func safeHandler(fn http.HandlerFunc) http.HandlerFunc {
 			if e, ok := recover().(error); ok {
 				//http.Error(w, e.Error(), http.StatusInternalServerError)
 				// 或者输出自定义的50x错误页面
-				w.WriteHeader(http.StatusInternalServerError)
+				//w.WriteHeader(http.StatusInternalServerError)
+				w.Header().Add("Status-Code", http.StatusInternalServerError)
 				locals := make(map[string]interface{})
 				locals["error"] = e.Error()
 				renderHtml(w, "error", locals)
