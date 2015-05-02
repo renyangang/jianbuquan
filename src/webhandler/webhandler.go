@@ -50,7 +50,7 @@ func check(err error) {
 }
 func renderHtml(w http.ResponseWriter, tmpl string, locals map[string]interface{}) {
 	ttinit()
-	w.Header().Add("content-type", "text/html")
+	w.Header().Add("content-type", "text/html; charset=utf-8")
 	err := templates[tmpl].Execute(w, locals)
 	check(err)
 }

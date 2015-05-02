@@ -16,7 +16,7 @@ func init() {
 }
 
 func getConn() (redis.Conn, error) {
-	return redis.Dial("TCP", "127.0.0.1:8432")
+	return redis.Dial("tcp", "127.0.0.1:8432")
 }
 
 type RedisObj interface {
