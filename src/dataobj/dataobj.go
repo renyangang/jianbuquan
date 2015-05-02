@@ -298,18 +298,18 @@ func (user *User) UpdateStepRecord(oldstep int, newstep int) bool {
 	user.MonthStepNum -= oldstep
 	user.MonthStepNum += newstep
 
-	_, err = redis.Bool(dbconn.Do("HMSET", "id:"+user.Id, "weeksteps", user.WeekStepNum, "monthsteps", user.MonthStepNum))
+	_, err = dbconn.Do("HMSET", "id:"+user.Id, "weeksteps", user.WeekStepNum, "monthsteps", user.MonthStepNum)
 	if err != nil {
 		weblog.ErrorLog("set userinfo failed in user UpdateStepRecord.errinfo: %s", err.Error())
 		return false
 	}
 
-	_, err = redis.Bool(dbconn.Do("ZADD", "weeksteps", user.WeekStepNum, user.Id))
+	_, err = dbconn.Do("ZADD", "weeksteps", user.WeekStepNum, user.Id)
 	if err != nil {
 		weblog.ErrorLog("set weeksteps failed in user UpdateStepRecord.errinfo: %s", err.Error())
 		return false
 	}
-	_, err = redis.Bool(dbconn.Do("ZADD", "monthsteps", user.MonthStepNum, user.Id))
+	_, err = dbconn.Do("ZADD", "monthsteps", user.MonthStepNum, user.Id)
 	if err != nil {
 		weblog.ErrorLog("set monthsteps failed in user UpdateStepRecord.errinfo: %s", err.Error())
 		return false
@@ -339,18 +339,18 @@ func (user *User) UpdateDistanceRecord(olddistance int, newdistance int) bool {
 	user.MonthDistance -= olddistance
 	user.MonthDistance += newdistance
 
-	_, err = redis.Bool(dbconn.Do("HMSET", "id:"+user.Id, "weekdistance", user.WeekDistance, "monthdistance", user.MonthDistance))
+	_, err = dbconn.Do("HMSET", "id:"+user.Id, "weekdistance", user.WeekDistance, "monthdistance", user.MonthDistance)
 	if err != nil {
 		weblog.ErrorLog("set userinfo failed in user UpdateDistanceRecord.errinfo: %s", err.Error())
 		return false
 	}
 
-	_, err = redis.Bool(dbconn.Do("ZADD", "weekdistance", user.WeekDistance, user.Id))
+	_, err = dbconn.Do("ZADD", "weekdistance", user.WeekDistance, user.Id)
 	if err != nil {
 		weblog.ErrorLog("set weekdistance failed in user UpdateDistanceRecord.errinfo: %s", err.Error())
 		return false
 	}
-	_, err = redis.Bool(dbconn.Do("ZADD", "monthdistance", user.MonthDistance, user.Id))
+	_, err = dbconn.Do("ZADD", "monthdistance", user.MonthDistance, user.Id)
 	if err != nil {
 		weblog.ErrorLog("set monthdistance failed in user UpdateDistanceRecord.errinfo: %s", err.Error())
 		return false
@@ -426,32 +426,32 @@ func (user *User) IsExist() bool {
 
 func (user *User) Save() (ret bool) {
 	dbconn := dbpool.Get()
-	_, err := redis.Bool(dbconn.Do("HSET", "appid:id", user.Appid, user.Id))
+	_, err := dbconn.Do("HSET", "appid:id", user.Appid, user.Id)
 	if err != nil {
 		weblog.ErrorLog("set appid failed in user save.errinfo: %s", err.Error())
 		return false
 	}
-	_, err = redis.Bool(dbconn.Do("HMSET", "id:"+user.Id, "name", user.Name, "img", user.Img, "weeksteps", user.WeekStepNum, "monthsteps", user.MonthStepNum, "weekdistance", user.WeekDistance, "monthdistance", user.MonthDistance))
+	_, err = dbconn.Do("HMSET", "id:"+user.Id, "name", user.Name, "img", user.Img, "weeksteps", user.WeekStepNum, "monthsteps", user.MonthStepNum, "weekdistance", user.WeekDistance, "monthdistance", user.MonthDistance)
 	if err != nil {
 		weblog.ErrorLog("set userinfo failed in user save.errinfo: %s", err.Error())
 		return false
 	}
-	_, err = redis.Bool(dbconn.Do("ZADD", "weeksteps", user.WeekStepNum, user.Id))
+	_, err = dbconn.Do("ZADD", "weeksteps", user.WeekStepNum, user.Id)
 	if err != nil {
 		weblog.ErrorLog("set weeksteps failed in user save.errinfo: %s", err.Error())
 		return false
 	}
-	_, err = redis.Bool(dbconn.Do("ZADD", "monthsteps", user.MonthStepNum, user.Id))
+	_, err = dbconn.Do("ZADD", "monthsteps", user.MonthStepNum, user.Id)
 	if err != nil {
 		weblog.ErrorLog("set monthsteps failed in user save.errinfo: %s", err.Error())
 		return false
 	}
-	_, err = redis.Bool(dbconn.Do("ZADD", "weekdistance", user.WeekDistance, user.Id))
+	_, err = dbconn.Do("ZADD", "weekdistance", user.WeekDistance, user.Id)
 	if err != nil {
 		weblog.ErrorLog("set weekdistance failed in user save.errinfo: %s", err.Error())
 		return false
 	}
-	_, err = redis.Bool(dbconn.Do("ZADD", "monthdistance", user.MonthDistance, user.Id))
+	_, err = dbconn.Do("ZADD", "monthdistance", user.MonthDistance, user.Id)
 	if err != nil {
 		weblog.ErrorLog("set monthdistance failed in user save.errinfo: %s", err.Error())
 		return false
@@ -464,71 +464,71 @@ func (user *User) UpdateItem(olduser *User) (ret bool) {
 	var err error
 	// 可以修改的只有id、name、img
 	if user.Id != olduser.Id {
-		_, err = redis.Bool(dbconn.Do("HSET", "appid:id", user.Appid, user.Id))
+		_, err = dbconn.Do("HSET", "appid:id", user.Appid, user.Id)
 		if err != nil {
 			weblog.ErrorLog("set appid:id failed in user update")
 			return false
 		}
-		_, err = redis.Bool(dbconn.Do("RENAME", "id:"+olduser.Id, "id:"+user.Id))
+		_, err = dbconn.Do("RENAME", "id:"+olduser.Id, "id:"+user.Id)
 		if err != nil {
 			weblog.ErrorLog("set user info id failed in user update")
 			return false
 		}
-		_, err = redis.Bool(dbconn.Do("RENAME", olduser.Id, user.Id))
+		_, err = dbconn.Do("RENAME", olduser.Id, user.Id)
 		if err != nil {
 			weblog.ErrorLog("set user daliyrecord id failed in user update")
 			return false
 		}
-		_, err = redis.Bool(dbconn.Do("ZREM", "weeksteps", olduser.Id))
+		_, err = dbconn.Do("ZREM", "weeksteps", olduser.Id)
 		if err != nil {
 			weblog.ErrorLog("remove weeksteps failed in user update")
 			return false
 		}
-		_, err = redis.Bool(dbconn.Do("ZREM", "monthsteps", olduser.Id))
+		_, err = dbconn.Do("ZREM", "monthsteps", olduser.Id)
 		if err != nil {
 			weblog.ErrorLog("remove monthsteps failed in user update")
 			return false
 		}
-		_, err = redis.Bool(dbconn.Do("ZREM", "weekdistance", olduser.Id))
+		_, err = dbconn.Do("ZREM", "weekdistance", olduser.Id)
 		if err != nil {
 			weblog.ErrorLog("remove weekdistance failed in user update")
 			return false
 		}
-		_, err = redis.Bool(dbconn.Do("ZREM", "monthdistance", olduser.Id))
+		_, err = dbconn.Do("ZREM", "monthdistance", olduser.Id)
 		if err != nil {
 			weblog.ErrorLog("remove monthdistance failed in user update")
 			return false
 		}
-		_, err = redis.Bool(dbconn.Do("ZADD", "weeksteps", olduser.WeekStepNum, user.Id))
+		_, err = dbconn.Do("ZADD", "weeksteps", olduser.WeekStepNum, user.Id)
 		if err != nil {
 			weblog.ErrorLog("set weeksteps failed in user update.errinfo: %s", err.Error())
 			return false
 		}
-		_, err = redis.Bool(dbconn.Do("ZADD", "monthsteps", olduser.MonthStepNum, user.Id))
+		_, err = dbconn.Do("ZADD", "monthsteps", olduser.MonthStepNum, user.Id)
 		if err != nil {
 			weblog.ErrorLog("set monthsteps failed in user update.errinfo: %s", err.Error())
 			return false
 		}
-		_, err = redis.Bool(dbconn.Do("ZADD", "weekdistance", olduser.WeekDistance, user.Id))
+		_, err = dbconn.Do("ZADD", "weekdistance", olduser.WeekDistance, user.Id)
 		if err != nil {
 			weblog.ErrorLog("set weekdistance failed in user update.errinfo: %s", err.Error())
 			return false
 		}
-		_, err = redis.Bool(dbconn.Do("ZADD", "monthdistance", olduser.MonthDistance, user.Id))
+		_, err = dbconn.Do("ZADD", "monthdistance", olduser.MonthDistance, user.Id)
 		if err != nil {
 			weblog.ErrorLog("set monthdistance failed in user update.errinfo: %s", err.Error())
 			return false
 		}
 	}
 	if user.Name != olduser.Name {
-		_, err = redis.Bool(dbconn.Do("HSET", "id:"+user.Id, "name", user.Name))
+		_, err = dbconn.Do("HSET", "id:"+user.Id, "name", user.Name)
 		if err != nil {
 			weblog.ErrorLog("set name failed in user update")
 			return false
 		}
 	}
 	if user.Img != olduser.Img {
-		_, err = redis.Bool(dbconn.Do("HSET", "id:"+user.Id, "img", user.Img))
+		_, err = dbconn.Do("HSET", "id:"+user.Id, "img", user.Img)
 		if err != nil {
 			weblog.ErrorLog("set img failed in user update")
 			return false
