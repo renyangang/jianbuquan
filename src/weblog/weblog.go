@@ -13,9 +13,10 @@ const (
 
 var logger *log.Logger
 var logfile *os.File
+var debugflag bool
 
 func loginit() {
-
+	debugflag = true
 	var err error
 	_, err = os.Stat(LOGFILE)
 	if err != nil && !os.IsExist(err) {
@@ -39,8 +40,12 @@ func InfoLog(format string, v ...interface{}) {
 
 func DebugLog(format string, v ...interface{}) {
 	loginit()
+	if !debugflag {
+		return
+	}
 	logger.SetPrefix("[DEBUG]")
-	logger.Output(2, fmt.Sprintf(format, v))
+	logger.SetFlags(log.LstdFlags | log.Llongfile)
+	logger.Output(3, fmt.Sprintf(format, v))
 }
 
 func ErrorLog(format string, v ...interface{}) {

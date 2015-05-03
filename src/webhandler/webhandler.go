@@ -80,7 +80,10 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 }
 func regHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		renderHtml(w, "regpage", nil)
+		locals := make(map[string]interface{})
+		appid := r.FormValue("appid")
+		locals["appid"] = appid
+		renderHtml(w, "regpage", locals)
 	} else if r.Method == "POST" {
 		user := new(dataobj.User)
 		user.Appid = r.FormValue("appid")
@@ -126,9 +129,11 @@ func dailyHandler(w http.ResponseWriter, r *http.Request) {
 		user.SelfDaily.Distance, _ = strconv.Atoi(r.FormValue("distance"))
 
 		f, h, err := r.FormFile("img")
-		check(err)
+		if err != nil {
+			panic(errors.New("运动截图必须上传"))
+		}
 		defer f.Close()
-		filepath := UPLOAD_DIR + user.Id
+		filepath := UPLOAD_DIR + user.Id + "/"
 		err = os.MkdirAll(filepath, os.ModeDir|os.ModePerm)
 		check(err)
 		user.SelfDaily.Img = filepath + user.SelfDaily.GetDateStr() + path.Ext(h.Filename)
@@ -138,6 +143,7 @@ func dailyHandler(w http.ResponseWriter, r *http.Request) {
 		_, err = io.Copy(t, f)
 		check(err)
 		user.SelfDaily.Img = strings.Replace(user.SelfDaily.Img, "./public", "/assets", -1)
+		user.SelfDaily.Day = day
 		ret := user.SelfDaily.Save()
 		if !ret {
 			// 失败页面
@@ -176,7 +182,45 @@ func detailHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func rankingHandler(w http.ResponseWriter, r *http.Request) {
-	renderHtml(w, "ranking", nil)
+	ranktype := r.FormValue("type")
+	num, err := strconv.Atoi(r.FormValue("num"))
+	if err != nil || ranktype == "" {
+		panic(errors.New("请注册后从微信提示信息入口处进入"))
+	}
+	locals := make(map[string]interface{})
+	locals["type"] = ranktype
+	locals["num"] = num
+	switch ranktype {
+	case "week":
+		if num == 0 {
+			locals["title"] = "本周健走达人榜"
+			locals["nextnum"] = 1
+			locals["buttontext"] = "查看上周榜"
+		} else {
+			locals["title"] = "上周健走达人榜"
+			locals["nextnum"] = 0
+			locals["buttontext"] = "查看本周榜"
+		}
+		locals["users"] = dataobj.GetTopWeekStepUsers(0, 10, num)
+	case "month":
+		if num == 0 {
+			locals["title"] = "本月健走达人榜"
+			locals["nextnum"] = 1
+			locals["buttontext"] = "查看上月榜"
+		} else {
+			locals["title"] = "上月健走达人榜"
+			locals["nextnum"] = 0
+			locals["buttontext"] = "查看本月榜"
+		}
+		locals["num"] = 0
+		locals["users"] = dataobj.GetTopMonthStepUsers(0, 10, num)
+	default:
+		panic(errors.New("请注册后从微信提示信息入口处进入"))
+	}
+	if locals["title"] == nil {
+		panic(errors.New("数据查询失败"))
+	}
+	renderHtml(w, "ranking", locals)
 }
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/register", http.StatusFound)

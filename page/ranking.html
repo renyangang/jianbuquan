@@ -19,15 +19,15 @@
          <img src="assets/img/logo.png"  alt="logo" class="logo" />
          	<a href="index.html" class="button back"><img src="assets/img/back-button.png" width="15" height="16" alt="icon" /></a>
          	<a href="#" class="button search"><img src="assets/img/search.png" width="16" height="16" alt="icon"/></a>
-         	<a href="form.html" class="button create"><img src="assets/img/create.png" width="16" height="16" alt="icon"/></a>
+         	<a href="assets/page/about.html" target="_blank" class="button create"><img src="assets/img/info.png" width="16" height="16" alt="icon"/></a>
         <div class="clear"></div>
         </div>
     <!-- end header -->
     
     <!-- start searchbox -->
     <div class="searchbox">
-   	  <form id="form1" name="form1" method="post" action="">
-      	<input type="text" name="textfield" id="textfield" class="txtbox" />
+   	  <form id="form1" name="form1" method="post" action="/detail?weeknum=0">
+      	<input type="text" name="id" id="id" class="txtbox" />
    	  </form>
     </div>
     <!-- end searchbox -->
@@ -38,14 +38,16 @@
     
     		
             <div class="simplebox">
-            	<center><h1 class="titleh">周榜达人秀</h1></center>
+            	<center><h1 class="titleh">{{.title}}</h1></center>
              
-                    <ul class="list-menu">                        <li><a><b><span class="headerbolder">名次</span><span  class="headercenter">姓名</span><span  class="headerbolderend">步数</span></b></a></li>                        <li><a><b><span class="red">NO.1</span><span class="text">张建勋顶三方</span><span  class="redend">10000000</span> </b></a></li>                        <li><a><b><span class="red">NO.2</span><span class="text">张建勋顶三方</span><span  class="redend">90000</span> </b></a></li>                        <li><a><b><span class="red">NO.3</span><span class="text">张建勋顶三方</span><span  class="redend">80000</span> </b></a></li>                        <li><a><b><span class="blue">NO.4</span><span class="text">张建勋顶三方</span><span  class="blueend">7000</span> </b></a></li>                        <li><a><b><span class="blue">NO.5</span><span class="text">张建勋顶三方</span><span  class="blueend">6000</span> </b></a></li>                        <li><a><b><span class="blue">NO.6</span><span class="text">张建勋顶三方</span><span  class="blueend">5000</span> </b></a></li>                        </ul>                
+                    <ul class="list-menu">                        <li><a><b><span class="headerbolder">名次</span><span  class="headercenter">姓名</span><span  class="headerbolderend">步数</span></b></a></li>                        {{range $k, $v := $.users}}<li><a href="/detail?id={{$v.Id}}&weeknum={{$.num}}"><b><span class="{{if lt $v.Ranking 4}}red{{else}}blue{{end}}">NO.{{$v.Ranking|html}}</span><span class="text">{{$v.Name|html}}</span><span  class="{{if lt $v.Ranking 4}}red{{else}}blue{{end}}end">{{$v.StepNums|html}}</span> </b></a></li>{{end}}                        </ul>
       </div>
             
             
             
-            
+             <div class="form-line">
+                   <center><a href="/ranking?type={{.type}}&num={{.nextnum}}"><input type="submit" name="button" id="button" value="&nbsp;{{.buttontext}}&nbsp;" class="list-button" /></a></center> 
+                    </div>
             
             
             <!-- start top button -->

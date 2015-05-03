@@ -19,22 +19,22 @@
          <img src="assets/img/logo.png"  alt="logo" class="logo" />
          	<a href="index.html" class="button back"><img src="assets/img/back-button.png" width="15" height="16" alt="icon" /></a>
          	<a href="#" class="button search"><img src="assets/img/search.png" width="16" height="16" alt="icon"/></a>
-         	<a href="form.html" class="button create"><img src="assets/img/create.png" width="16" height="16" alt="icon"/></a>
+         	<a href="assets/page/about.html"  target="_blank" class="button create"><img src="assets/img/info.png" width="16" height="16" alt="icon"/></a>
         <div class="clear"></div>
         </div>
     <!-- end header -->
     
     <!-- start searchbox -->
     <div class="searchbox">
-   	  <form id="form1" name="form1" method="post" action="">
-      	<input type="text" name="textfield" id="textfield" class="txtbox" />
+   	  <form id="form1" name="form1" method="post" action="/detail?weeknum=0">
+      	<input type="text" name="id" id="id" class="txtbox" />
    	  </form>
     </div>
     <!-- end searchbox -->
     <input type="hidden" id="datestr" value="{{range $k, $v := $.user.SelfDailys}}{{if gt $k 0}},{{end}}{{$v.GetDateStr}}{{end}}" />
     <input type="hidden" id="steps" value="{{range $k, $v := $.user.SelfDailys}}{{if gt $k 0}},{{end}}{{$v.StepNum}}{{end}}" />
     <input type="hidden" id="distances" value="{{range $k, $v := $.user.SelfDailys}}{{if gt $k 0}},{{end}}{{$v.Distance}}{{end}}" />
-    <input type="hidden" id="username" value="{{.user.Name}}" />
+    <input type="hidden" id="username" value="{{.user.Name|html}}" />
     <!-- start page -->
     <div class="page">
     
@@ -124,7 +124,7 @@
                         {
                             name: '步行数',
                             type: 'line',
-                            data: [10000, 9000, 10002, 900, 1200, 13000, 1000],
+                            data: [],
                             markPoint: {
                                 data: [
                                     { type: 'max', name: '最大值' },
@@ -140,7 +140,7 @@
                     ]
                 };
                 option.xAxis[0].data = datestr;
-                option.series.data = steps;
+                option.series[0].data = steps;
                 option.title.text = document.getElementById("username").value + "详细记录数据";
                 // 为echarts对象加载数据 
                 myChart.setOption(option);
@@ -182,7 +182,7 @@
                         {
                             name: '公里数',
                             type: 'line',
-                            data: [10, 2, 2, 5, 13, 2, 10],
+                            data: [],
                             markPoint: {
                                 data: [
                                     { type: 'max', name: '最大值' },

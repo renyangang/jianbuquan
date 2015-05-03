@@ -13,20 +13,20 @@
 <script type="text/javascript" src="assets/js/toogle.js"></script>    
 </head>
 <body>
-    <!-- start header -->
+   <!-- start header -->
     	<div id="header">
-         <a href="#"><img src="img/logo.png" alt="logo" class="logo" /></a>
-         	<a href="javascript:history.back()" class="button back"><img src="assets/img/back-button.png" width="15" height="16" alt="icon" /></a>
+         <img src="assets/img/logo.png"  alt="logo" class="logo" />
+         	<a href="index.html" class="button back"><img src="assets/img/back-button.png" width="15" height="16" alt="icon" /></a>
          	<a href="#" class="button search"><img src="assets/img/search.png" width="16" height="16" alt="icon"/></a>
-         	<a href="form.html" class="button create"><img src="assets/img/create.png" width="16" height="16" alt="icon"/></a>
+         	<a href="assets/page/about.html" target="_blank" class="button create"><img src="assets/img/info.png" width="16" height="16" alt="icon"/></a>
         <div class="clear"></div>
         </div>
     <!-- end header -->
     
     <!-- start searchbox -->
     <div class="searchbox">
-   	  <form id="form1" name="form1" method="post" action="">
-      	<input type="text" name="textfield" id="textfield" class="txtbox" />
+   	  <form id="form1" name="form1" method="post" action="/detail?weeknum=0">
+      	<input type="text" name="id" id="id" class="txtbox" />
    	  </form>
     </div>
     <!-- end searchbox -->
@@ -47,7 +47,7 @@
                     	<img src="assets/img/error.png" width="62" height="62" alt="icon" />
                         <h3>额... 出错了</h3>
                         <p>{{.error|html}}</p>
-                        <div class="buttons"><a href="javascript:history.back(-1)'" class="reset-button">&nbsp;返 回&nbsp;</a></div>
+                        <div class="buttons"><a href="javascript:history.back()" class="reset-button">&nbsp;返 回&nbsp;</a></div>
                     </div>
                 
                 

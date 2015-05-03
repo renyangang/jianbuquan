@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"github.com/garyburd/redigo/redis"
+	"strconv"
 	"time"
 	"weblog"
 )
@@ -43,6 +44,7 @@ func NewDailyRecord(usr *User, idx int32) (dr *DailyRecord) {
 	dr = new(DailyRecord)
 	dr.index = idx
 	dr.user = usr
+	weblog.DebugLog("create dailyrec with[%v]", idx, dr.Day)
 	if !dr.Load() {
 		return nil
 	}
@@ -53,7 +55,8 @@ func (dr *DailyRecord) UnSerialization(bs []byte) bool {
 	dr.istodayloaded = false
 	dr.version = 0
 	dr.Day = time.Now()
-	if len(bs) <= 0 {
+	weblog.DebugLog("bs is %v", bs)
+	if bs == nil || len(bs) <= 0 {
 		return true
 	}
 	if len(bs) < 16 {
@@ -69,21 +72,25 @@ func (dr *DailyRecord) UnSerialization(bs []byte) bool {
 	var t int64
 	err = binary.Read(buf, binary.BigEndian, &t)
 	if err != nil {
-		weblog.ErrorLog("decode for DailyRecord.Day failed.errinfo:%s", err.Error())
+		weblog.ErrorLog("decode for DailyRecord.Day.Unix failed.errinfo:%s", err.Error())
 		return false
 	}
 	dr.Day = time.Unix(t, 0)
-	err = binary.Read(buf, binary.BigEndian, &dr.StepNum)
+	weblog.DebugLog("decode day with[%v]", t, dr.Day)
+	var tempint int32
+	err = binary.Read(buf, binary.BigEndian, &tempint)
 	if err != nil {
 		weblog.ErrorLog("decode for DailyRecord.StepNum failed.errinfo:%s", err.Error())
 		return false
 	}
+	dr.StepNum = int(tempint)
 	dr.oldStepNum = dr.StepNum
-	err = binary.Read(buf, binary.BigEndian, &dr.Distance)
+	err = binary.Read(buf, binary.BigEndian, &tempint)
 	if err != nil {
 		weblog.ErrorLog("decode for DailyRecord.Distance failed.errinfo:%s", err.Error())
 		return false
 	}
+	dr.Distance = int(tempint)
 	dr.oldDistance = dr.Distance
 	var strlen int32
 	err = binary.Read(buf, binary.BigEndian, &strlen)
@@ -98,33 +105,43 @@ func (dr *DailyRecord) UnSerialization(bs []byte) bool {
 }
 
 func (dr *DailyRecord) Load() (ret bool) {
-	bs, err := redis.Bytes(dbpool.Get().Do("LINDEX", dr.user.Id, dr.index))
+	dbconn := dbpool.Get()
+	recordlen, err := redis.Int(dbconn.Do("LLEN", dr.user.Id))
 	if err != nil {
-		weblog.ErrorLog("decode for DailyRecord.Img length failed.errinfo:%s", err.Error())
+		weblog.ErrorLog("get dailyrecord len failed in Load.errinfo: %s", err.Error())
+		return false
+	}
+	if int32(recordlen) <= dr.index {
+		return dr.UnSerialization(nil)
+	}
+	bs, err := redis.Bytes(dbconn.Do("LINDEX", dr.user.Id, dr.index))
+	if err != nil {
+		weblog.ErrorLog("get first dailyrecord failed.errinfo:%s", err.Error())
 		return false
 	}
 	return dr.UnSerialization(bs)
 }
 
 func (dr *DailyRecord) Serialization() (bs []byte, err error) {
-	bs = make([]byte, 16)
+	bs = []byte{}
 	buf := bytes.NewBuffer(bs)
 	err = binary.Write(buf, binary.BigEndian, dr.version)
 	if err != nil {
 		weblog.ErrorLog("encode for DailyRecord.version failed.errinfo:%s", err.Error())
 		return
 	}
+	weblog.DebugLog("day serial %v", dr.Day.Unix(), dr.Day)
 	err = binary.Write(buf, binary.BigEndian, dr.Day.Unix())
 	if err != nil {
-		weblog.ErrorLog("encode for DailyRecord.Day failed.errinfo:%s", err.Error())
+		weblog.ErrorLog("encode for DailyRecord.Day.Unix failed.errinfo:%s", err.Error())
 		return
 	}
-	err = binary.Write(buf, binary.BigEndian, dr.StepNum)
+	err = binary.Write(buf, binary.BigEndian, int32(dr.StepNum))
 	if err != nil {
 		weblog.ErrorLog("encode for DailyRecord.StepNum failed.errinfo:%s", err.Error())
 		return
 	}
-	err = binary.Write(buf, binary.BigEndian, dr.Distance)
+	err = binary.Write(buf, binary.BigEndian, int32(dr.Distance))
 	if err != nil {
 		weblog.ErrorLog("encode for DailyRecord.Distance failed.errinfo:%s", err.Error())
 		return
@@ -158,7 +175,7 @@ func (dr *DailyRecord) Save() (ret bool) {
 		weblog.ErrorLog("Save DailyRecord failed.errinfo:%s", err.Error())
 		return false
 	}
-	dr.user.UpdateStepRecord(dr.oldStepNum, dr.StepNum)
+	dr.user.UpdateStepRecord(dr)
 	dr.user.UpdateDistanceRecord(dr.oldDistance, dr.Distance)
 	return true
 }
@@ -174,9 +191,11 @@ type User struct {
 	Img           string
 	WeekStepNum   int
 	MonthStepNum  int
+	StepNums      int
 	WeekDistance  int
 	MonthDistance int
 	IsLoad        bool
+	Ranking       int
 	SelfDailys    []*DailyRecord
 	SelfDaily     *DailyRecord
 }
@@ -188,7 +207,7 @@ func (user *User) GetDailyRecords(weeknum int) (ret bool, hasbefore bool) {
 	day := time.Now()
 	// api一周从周日开始计，我们这里从周一开始
 	weekday := day.Weekday()
-	daynum := weekday
+	daynum := int(weekday)
 	subdaynum := 0
 	// 计算出周日
 	if weeknum > 0 {
@@ -202,30 +221,37 @@ func (user *User) GetDailyRecords(weeknum int) (ret bool, hasbefore bool) {
 		return
 	}
 	user.SelfDailys = make([]*DailyRecord, daynum)
-	user.SelfDailys[0] = user.SelfDaily
-	if daynum > 1 {
-		dbconn := dbpool.Get()
-		recordlen, err1 := redis.Int(dbconn.Do("LLEN", user.Id))
-		if err1 != nil {
-			weblog.ErrorLog("get dailyrecord len failed in GetDailyRecordS.errinfo: %s", err1.Error())
-			return
-		}
-		if subdaynum+7 >= recordlen {
-			hasbefore = false
-		}
-		bsarray, err := redis.Values(dbconn.Do("LRANGE", user.Id, subdaynum+1, daynum-1))
-		if err != nil {
-			weblog.ErrorLog("get dailyrecords failed in GetDailyRecord.errinfo: %s", err.Error())
-			return
-		}
-		if bsarray == nil || len(bsarray) == 0 {
-			return true, hasbefore
-		}
-		for i, bs := range bsarray {
-			user.SelfDailys[i+1] = new(DailyRecord)
-			user.SelfDailys[i+1].user = user
-			user.SelfDailys[i+1].UnSerialization(bs.([]byte))
-		}
+	dbconn := dbpool.Get()
+	recordlen, err1 := redis.Int(dbconn.Do("LLEN", user.Id))
+	if err1 != nil {
+		weblog.ErrorLog("get dailyrecord len failed in GetDailyRecordS.errinfo: %s", err1.Error())
+		return
+	}
+	if subdaynum+7 >= recordlen {
+		hasbefore = false
+	}
+	bsarray, err := redis.Values(dbconn.Do("LRANGE", user.Id, subdaynum, daynum))
+	if err != nil {
+		weblog.ErrorLog("get dailyrecords failed in GetDailyRecord.errinfo: %s", err.Error())
+		return
+	}
+	if bsarray == nil || len(bsarray) == 0 {
+		ret = true
+	}
+	idx := 0
+	for idx = 0; idx < len(bsarray); idx++ {
+		user.SelfDailys[daynum-idx-1] = new(DailyRecord)
+		user.SelfDailys[daynum-idx-1].user = user
+		user.SelfDailys[daynum-idx-1].UnSerialization(bsarray[idx].([]byte))
+	}
+	for idx < daynum {
+		user.SelfDailys[daynum-idx-1] = new(DailyRecord)
+		user.SelfDailys[daynum-idx-1].user = user
+		user.SelfDailys[daynum-idx-1].StepNum = 0
+		user.SelfDailys[daynum-idx-1].Distance = 0
+		user.SelfDailys[daynum-idx-1].Img = ""
+		user.SelfDailys[daynum-idx-1].Day = day.AddDate(0, 0, idx*-1)
+		idx++
 	}
 	return true, hasbefore
 }
@@ -254,9 +280,11 @@ func (user *User) GetDailyRecord(day time.Time) bool {
 		weblog.ErrorLog("load daily record index 0 failed.")
 		return false
 	}
-	for user.SelfDaily.Day.Before(day) && user.SelfDaily.Day.YearDay() != day.YearDay() {
+	for user.SelfDaily.Day.Before(day) && (user.SelfDaily.Day.YearDay() != day.YearDay() || user.SelfDaily.Day.Year() != day.Year()) {
+		weblog.DebugLog("record day[%v] before than day[%v]", user.SelfDaily.Day, day)
 		tt, _ := time.ParseDuration("24h")
 		d := user.SelfDaily.Day.Add(tt)
+		weblog.DebugLog("insert day[%v]", d)
 		user.SelfDaily = new(DailyRecord)
 		user.SelfDaily.Day = d
 		user.SelfDaily.istodayloaded = false
@@ -273,12 +301,12 @@ func (user *User) GetDailyRecord(day time.Time) bool {
 			return true
 		}
 	}
-	weblog.ErrorLog("find daliyrecore for %v failed.", day)
+	weblog.ErrorLog("find daliyrecord for %v failed.", day)
 	return false
 }
 
-func (user *User) UpdateStepRecord(oldstep int, newstep int) bool {
-	if oldstep == newstep {
+func (user *User) UpdateStepRecord(dr *DailyRecord) bool {
+	if dr.oldStepNum == dr.StepNum {
 		return true
 	}
 	dbconn := dbpool.Get()
@@ -293,10 +321,10 @@ func (user *User) UpdateStepRecord(oldstep int, newstep int) bool {
 		weblog.ErrorLog("get user monthsteps failed in user UpdateStepRecord.errinfo: %s", err.Error())
 		return false
 	}
-	user.WeekStepNum -= oldstep
-	user.WeekStepNum += newstep
-	user.MonthStepNum -= oldstep
-	user.MonthStepNum += newstep
+	user.WeekStepNum -= dr.oldStepNum
+	user.WeekStepNum += dr.StepNum
+	user.MonthStepNum -= dr.oldStepNum
+	user.MonthStepNum += dr.StepNum
 
 	_, err = dbconn.Do("HMSET", "id:"+user.Id, "weeksteps", user.WeekStepNum, "monthsteps", user.MonthStepNum)
 	if err != nil {
@@ -304,12 +332,12 @@ func (user *User) UpdateStepRecord(oldstep int, newstep int) bool {
 		return false
 	}
 
-	_, err = dbconn.Do("ZADD", "weeksteps", user.WeekStepNum, user.Id)
+	_, err = dbconn.Do("ZADD", GetWeekStepKey(dr.Day, 0), user.WeekStepNum, user.Id)
 	if err != nil {
 		weblog.ErrorLog("set weeksteps failed in user UpdateStepRecord.errinfo: %s", err.Error())
 		return false
 	}
-	_, err = dbconn.Do("ZADD", "monthsteps", user.MonthStepNum, user.Id)
+	_, err = dbconn.Do("ZADD", GetMounthStepKey(dr.Day, 0), user.MonthStepNum, user.Id)
 	if err != nil {
 		weblog.ErrorLog("set monthsteps failed in user UpdateStepRecord.errinfo: %s", err.Error())
 		return false
@@ -436,12 +464,12 @@ func (user *User) Save() (ret bool) {
 		weblog.ErrorLog("set userinfo failed in user save.errinfo: %s", err.Error())
 		return false
 	}
-	_, err = dbconn.Do("ZADD", "weeksteps", user.WeekStepNum, user.Id)
+	_, err = dbconn.Do("ZADD", GetWeekStepKey(time.Now(), 0), user.WeekStepNum, user.Id)
 	if err != nil {
 		weblog.ErrorLog("set weeksteps failed in user save.errinfo: %s", err.Error())
 		return false
 	}
-	_, err = dbconn.Do("ZADD", "monthsteps", user.MonthStepNum, user.Id)
+	_, err = dbconn.Do("ZADD", GetMounthStepKey(time.Now(), 0), user.MonthStepNum, user.Id)
 	if err != nil {
 		weblog.ErrorLog("set monthsteps failed in user save.errinfo: %s", err.Error())
 		return false
@@ -479,12 +507,12 @@ func (user *User) UpdateItem(olduser *User) (ret bool) {
 			weblog.ErrorLog("set user daliyrecord id failed in user update")
 			return false
 		}
-		_, err = dbconn.Do("ZREM", "weeksteps", olduser.Id)
+		_, err = dbconn.Do("ZREM", GetWeekStepKey(time.Now(), 0), olduser.Id)
 		if err != nil {
 			weblog.ErrorLog("remove weeksteps failed in user update")
 			return false
 		}
-		_, err = dbconn.Do("ZREM", "monthsteps", olduser.Id)
+		_, err = dbconn.Do("ZREM", GetMounthStepKey(time.Now(), 0), olduser.Id)
 		if err != nil {
 			weblog.ErrorLog("remove monthsteps failed in user update")
 			return false
@@ -499,12 +527,12 @@ func (user *User) UpdateItem(olduser *User) (ret bool) {
 			weblog.ErrorLog("remove monthdistance failed in user update")
 			return false
 		}
-		_, err = dbconn.Do("ZADD", "weeksteps", olduser.WeekStepNum, user.Id)
+		_, err = dbconn.Do("ZADD", GetWeekStepKey(time.Now(), 0), olduser.WeekStepNum, user.Id)
 		if err != nil {
 			weblog.ErrorLog("set weeksteps failed in user update.errinfo: %s", err.Error())
 			return false
 		}
-		_, err = dbconn.Do("ZADD", "monthsteps", olduser.MonthStepNum, user.Id)
+		_, err = dbconn.Do("ZADD", GetMounthStepKey(time.Now(), 0), olduser.MonthStepNum, user.Id)
 		if err != nil {
 			weblog.ErrorLog("set monthsteps failed in user update.errinfo: %s", err.Error())
 			return false
@@ -537,34 +565,50 @@ func (user *User) UpdateItem(olduser *User) (ret bool) {
 	return true
 }
 
-func GetTopWeekStepUsers(topnum int) (users []*User) {
-	users = make([]*User, topnum)
+//base分页基数，topnum条数，num当前为基准0本周，1上周...
+func GetTopStepUsers(key string, base int, topnum int, num int) (users []*User) {
 	dbconn := dbpool.Get()
-	ids, err := redis.Strings(dbconn.Do("ZREVRANGE", "weeksteps", 0, topnum-1))
+	ids, err := redis.Strings(dbconn.Do("ZREVRANGE", key, base, topnum-1, "WITHSCORES"))
 	if err != nil {
-		weblog.ErrorLog("get weeksteps top %d ids failed.errinfo: %s", topnum, err.Error())
+		weblog.ErrorLog("get [%s]steps top %d ids with base,num[%d,%d] failed.errinfo: %s", key, topnum, base, num, err.Error())
 		return nil
 	}
+	users = make([]*User, len(ids)/2)
 	for idx, id := range ids {
-		users[idx] = new(User)
-		users[idx].Id = id
-		users[idx].Load()
+		weblog.DebugLog("[%v]", idx, id)
+		if idx%2 == 0 {
+			users[idx/2] = new(User)
+			users[idx/2].Id = id
+			users[idx/2].Load()
+			users[idx/2].Ranking = idx/2 + 1
+		} else {
+			users[idx/2].StepNums, err = strconv.Atoi(id)
+			if (idx/2 > 0) && users[idx/2].StepNums == users[idx/2-1].StepNums {
+				users[idx/2].Ranking = users[idx/2-1].Ranking
+			}
+		}
 	}
 	return
 }
+func GetTopWeekStepUsers(base int, topnum int, num int) (users []*User) {
+	return GetTopStepUsers(GetWeekStepKey(time.Now(), num), base, topnum, num)
+}
 
-func GetTopMonthStepUsers(topnum int) (users []*User) {
-	users = make([]*User, topnum)
-	dbconn := dbpool.Get()
-	ids, err := redis.Strings(dbconn.Do("ZREVRANGE", "monthsteps", 0, topnum-1))
-	if err != nil {
-		weblog.ErrorLog("get monthsteps top %d ids failed.errinfo: %s", topnum, err.Error())
-		return nil
+func GetTopMonthStepUsers(base int, topnum int, num int) (users []*User) {
+	return GetTopStepUsers(GetMounthStepKey(time.Now(), num), base, topnum, num)
+}
+
+func GetWeekStepKey(day time.Time, num int) string {
+	today := int(day.Weekday())
+	if today == 0 {
+		today = 7
 	}
-	for idx, id := range ids {
-		users[idx] = new(User)
-		users[idx].Id = id
-		users[idx].Load()
-	}
-	return
+	distance := (today - 1) + (num * 7)
+	monday := day.AddDate(0, 0, distance*-1)
+	return "weeksteps:" + monday.Format("2006-01-02")
+}
+
+func GetMounthStepKey(day time.Time, num int) string {
+	month := day.AddDate(0, num*-1, 0)
+	return "monthsteps:" + month.Month().String()
 }
