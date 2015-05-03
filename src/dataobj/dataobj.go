@@ -392,6 +392,7 @@ func GetUserByAppid(appid string) (user *User) {
 	var err error
 	user = new(User)
 	user.Appid = appid
+	user.IsLoad = false
 	user.Id, err = redis.String(dbconn.Do("HGET", "appid:id", user.Appid))
 	if err != nil {
 		weblog.ErrorLog("get userid failed with appid.errinfo: %s", err.Error())
@@ -402,6 +403,7 @@ func GetUserByAppid(appid string) (user *User) {
 		user.IsLoad = false
 		return
 	}
+	user.IsLoad = true
 	user.Load()
 	return
 }

@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 	"weblog"
+	"weixin"
 )
 
 const (
@@ -25,7 +26,7 @@ const (
 
 var templates map[string]*template.Template
 
-func ttinit() {
+func init() {
 	templates = make(map[string]*template.Template)
 	fileInfoArr, err := ioutil.ReadDir(PAGE_DIR)
 	check(err)
@@ -49,7 +50,6 @@ func check(err error) {
 	}
 }
 func renderHtml(w http.ResponseWriter, tmpl string, locals map[string]interface{}) {
-	ttinit()
 	w.Header().Add("content-type", "text/html; charset=utf-8")
 	err := templates[tmpl].Execute(w, locals)
 	check(err)
@@ -89,6 +89,9 @@ func regHandler(w http.ResponseWriter, r *http.Request) {
 		user.Appid = r.FormValue("appid")
 		user.Id = r.FormValue("id")
 		user.Name = r.FormValue("name")
+		if user.Id == "" || user.Name == "" {
+			panic(errors.New("ID和姓名不能为空，请检查配置"))
+		}
 		if user.IsExist() {
 			// id冲突
 			panic(errors.New("该用户已经存在，请检查id和姓名"))
@@ -223,7 +226,28 @@ func rankingHandler(w http.ResponseWriter, r *http.Request) {
 	renderHtml(w, "ranking", locals)
 }
 func rootHandler(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/register", http.StatusFound)
+	echostr := r.FormValue("echostr")
+	signature := r.FormValue("signature")
+	timestamp := r.FormValue("timestamp")
+	nonce := r.FormValue("nonce")
+
+	if !weixin.CheckSignature(signature, timestamp, nonce) {
+		return
+	}
+	if echostr != "" {
+		io.WriteString(w, echostr)
+		return
+	}
+	reqstr, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		weblog.ErrorLog("get weixin post body failed.errinfo:%s", err.Error())
+		return
+	}
+	weblog.DebugLog("req: %s", string(reqstr))
+	r.Body.Close()
+	res := weixin.MakeResponse("120.25.221.80", reqstr)
+	weblog.DebugLog("res: %s", res)
+	io.WriteString(w, res)
 }
 func safeHandler(fn http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

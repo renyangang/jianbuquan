@@ -39,6 +39,7 @@ func InfoLog(format string, v ...interface{}) {
 }
 
 func DebugLog(format string, v ...interface{}) {
+	return
 	loginit()
 	if !debugflag {
 		return

@@ -10,7 +10,7 @@ import (
 func main() {
 	mux := http.NewServeMux()
 	webhandler.RegisterHandler(mux)
-	err := http.ListenAndServe(":8080", mux)
+	err := http.ListenAndServe(":80", mux)
 	if err != nil {
 		weblog.ErrorLog("ListenAndServe: ", err.Error())
 	}
