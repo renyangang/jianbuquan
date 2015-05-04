@@ -309,35 +309,17 @@ func (user *User) UpdateStepRecord(dr *DailyRecord) bool {
 	if dr.oldStepNum == dr.StepNum {
 		return true
 	}
+weekkey := GetWeekStepKey(dr.Day, 0)
+	monthkey := GetMounthStepKey(dr.Day, 0)
+
 	dbconn := dbpool.Get()
 	var err error
-	user.WeekStepNum, err = redis.Int(dbconn.Do("HGET", "id:"+user.Id, "weeksteps"))
-	if err != nil {
-		weblog.ErrorLog("get user weeksteps failed in user UpdateStepRecord.errinfo: %s", err.Error())
-		return false
-	}
-	user.MonthStepNum, err = redis.Int(dbconn.Do("HGET", "id:"+user.Id, "monthsteps"))
-	if err != nil {
-		weblog.ErrorLog("get user monthsteps failed in user UpdateStepRecord.errinfo: %s", err.Error())
-		return false
-	}
-	user.WeekStepNum -= dr.oldStepNum
-	user.WeekStepNum += dr.StepNum
-	user.MonthStepNum -= dr.oldStepNum
-	user.MonthStepNum += dr.StepNum
-
-	_, err = dbconn.Do("HMSET", "id:"+user.Id, "weeksteps", user.WeekStepNum, "monthsteps", user.MonthStepNum)
-	if err != nil {
-		weblog.ErrorLog("set userinfo failed in user UpdateStepRecord.errinfo: %s", err.Error())
-		return false
-	}
-
-	_, err = dbconn.Do("ZADD", GetWeekStepKey(dr.Day, 0), user.WeekStepNum, user.Id)
+	_, err = dbconn.Do("ZINCRBY", weekkey, dr.StepNum-dr.oldStepNum, user.Id)
 	if err != nil {
 		weblog.ErrorLog("set weeksteps failed in user UpdateStepRecord.errinfo: %s", err.Error())
 		return false
 	}
-	_, err = dbconn.Do("ZADD", GetMounthStepKey(dr.Day, 0), user.MonthStepNum, user.Id)
+	_, err = dbconn.Do("ZINCRBY", monthkey, dr.StepNum-dr.oldStepNum, user.Id)
 	if err != nil {
 		weblog.ErrorLog("set monthsteps failed in user UpdateStepRecord.errinfo: %s", err.Error())
 		return false
